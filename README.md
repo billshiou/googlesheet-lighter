@@ -1,213 +1,193 @@
 # Google Sheets 區塊瀏覽器資料自動處理工具
 
-這是一個自動化工具，用於從區塊瀏覽器網址爬取資料並更新 Google Sheets，同時自動獲取加密貨幣價格。
+一個自動化工具，用於從區塊瀏覽器網址爬取資料並更新 Google Sheets，支援多組倉位管理和即時價格查詢。
 
-## 🚀 功能特色
+## ✨ 主要功能
 
-- **自動爬取區塊瀏覽器資料**：從 Lighter 等區塊瀏覽器網址自動提取交易資料
-- **智能價格查詢**：使用 CoinGecko API 自動獲取最新加密貨幣價格
-- **安全欄位更新**：只更新指定欄位，保護其他欄位（如公式）不被覆蓋
-- **批次處理**：支援批次更新，減少 API 呼叫次數
-- **錯誤重試機制**：自動重試失敗的請求，確保資料完整性
-- **排程執行**：支援每小時自動執行
+### 🔄 自動資料爬取
+- **多區塊瀏覽器支援**：Lighter、Etherscan、BSCscan、Polygonscan、Arbiscan、Optimistic Etherscan、Solscan、Solana Explorer
+- **智能資料解析**：自動提取地址、餘額、抵押金額、倉位資訊等
+- **重試機制**：網路錯誤時自動重試，確保資料完整性
 
-## 📋 支援的資料欄位
+### 📊 多組倉位管理
+- **雙倉位支援**：同時管理兩組 Open Positions
+- **獨立欄位**：每組倉位有獨立的 Symbol、Price、Size、Direction、PnL 欄位
+- **向後相容**：保持與原有單倉位格式的相容性
 
-| 欄位 | 說明 | 範例 |
-|------|------|------|
-| Address | 錢包地址 | 0x40b1fE8775A7663E14A4a46D922237C0A941002E |
-| Collateral Amount | 抵押金額 | 519.89 |
-| Open Positions | 開放倉位資訊 | BTC \| Size: 0.5 \| Side: LONG |
-| Symbol | 幣種代號 | BTC, ETH, AVAX |
-| Size | 倉位大小 | 0.5 |
-| Direction | 交易方向 | LONG, SHORT |
-| Realized PnL | 已實現盈虧 | 123.45 |
-| Unrealized PnL | 未實現盈虧 | -67.89 |
-| Price | 當前價格 | 23456.78 |
-| Last Updated | 最後更新時間 | 2025/01/19 12:34:56 |
+### 💰 即時價格查詢
+- **CoinGecko API 整合**：獲取即時加密貨幣價格
+- **批次處理**：高效批次查詢，減少 API 呼叫次數
+- **智能延遲**：避免 API 限制，確保穩定運行
 
-## 🛠️ 安裝與設定
+### 🔒 安全與驗證
+- **欄位驗證**：自動驗證 Google Sheets 欄位結構
+- **安全模式**：只更新指定欄位，避免意外覆蓋
+- **憑證管理**：安全的 Google API 認證流程
 
-### 1. 安裝依賴套件
+## 📋 支援的欄位結構
 
+### 基本資訊欄位
+- **Last Updated** (E欄)：最後更新時間
+- **Collateral Amount** (G欄)：抵押金額
+- **Open Positions** (H欄)：倉位摘要資訊
+
+### 第一組倉位欄位
+- **Symbol1** (I欄)：幣種代號
+- **Price1** (J欄)：當前價格
+- **Size1** (K欄)：倉位大小
+- **Direction1** (L欄)：交易方向
+- **Realized PnL1** (M欄)：已實現盈虧
+- **Unrealized PnL1** (N欄)：未實現盈虧
+
+### 第二組倉位欄位
+- **Symbol2** (O欄)：幣種代號
+- **Price2** (P欄)：當前價格
+- **Size2** (Q欄)：倉位大小
+- **Direction2** (R欄)：交易方向
+- **Realized PnL2** (S欄)：已實現盈虧
+- **Unrealized PnL2** (T欄)：未實現盈虧
+
+## 🚀 快速開始
+
+### 1. 環境準備
+```bash
+# 安裝 Python 3.8+
+# 下載專案檔案
+```
+
+### 2. 安裝依賴
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Google Sheets API 設定
-
+### 3. 設定 Google Sheets API
 1. 前往 [Google Cloud Console](https://console.cloud.google.com/)
 2. 建立新專案或選擇現有專案
 3. 啟用 Google Sheets API
-4. 建立服務帳戶並下載 `credentials.json`
+4. 建立服務帳號並下載 `credentials.json`
 5. 將 `credentials.json` 放在專案根目錄
 
-### 3. 設定 Google Sheets
+### 4. 設定專案
+1. 複製 `config_template.py` 為 `config.py`
+2. 編輯 `config.py`，填入您的 Google Sheets ID 和欄位設定
+3. 確保您的 Google Sheets 有正確的欄位結構
 
-1. 建立新的 Google Sheets
-2. 設定表頭欄位（參考下方格式）
-3. 在 `config.py` 中設定 Spreadsheet ID
-
-### 4. 設定 config.py
-
-1. **複製設定範本**：
-   ```bash
-   cp config_template.py config.py
-   ```
-
-2. **編輯 config.py**：
-   ```python
-   # Google Sheets 設定
-   SPREADSHEET_ID = "your_spreadsheet_id_here"  # 填入您的實際 Spreadsheet ID
-   
-   # 區塊瀏覽器網址所在的欄位
-   URL_COLUMN = "C"
-   
-   # 開始處理的行號（通常第1行是標題，所以從第2行開始）
-   START_ROW = 2
-   
-   # 結束處理的行號（留空表示處理到最後一行）
-   END_ROW = None
-   ```
-
-**重要**：請確保 `config.py` 包含您的實際 Spreadsheet ID，但不要將此檔案上傳到公開的版本控制系統。
-
-## 📊 Google Sheets 格式
-
-請確保您的 Google Sheets 有以下欄位結構：
-
-| A | B | C | D | E | F | G | H | I | J | K | L | M | N | O | P | Q |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 指紋編號 | 資金源 | 區塊瀏覽器 | 交易 | Address | Collateral Amount | (空) | Open Positions | Last Updated | Symbol | Price | Size | Direction | Realized PnL | Unrealized PnL | 倉位小計 | 帳戶未使用餘額 |
-
-## 🚀 使用方法
-
-### 快速開始
-
+### 5. 執行工具
 ```bash
+# Windows
+run.bat
+
+# 或直接執行
 python sheets_processor.py
 ```
 
-### 批次檔案執行（Windows）
+## ⚙️ 設定說明
 
-```bash
-run.bat
-```
-
-### 手動設定
-
-```bash
-python setup.py
-```
-
-## ⚙️ 進階設定
-
-### 支援的區塊瀏覽器
-
-- Lighter (scan.lighter.xyz)
-- Etherscan
-- BSCScan
-- PolygonScan
-- Arbiscan
-- Optimistic Etherscan
-- Solscan
-- Solana Explorer
-
-### 支援的加密貨幣
-
-支援 CoinGecko 上的所有主要加密貨幣，包括：
-- BTC, ETH, AVAX, TON, KAITO
-- 以及更多...
-
-### 自訂欄位映射
-
-在 `config.py` 中可以自訂欄位映射：
-
+### Google Sheets 設定
 ```python
-TARGET_COLUMNS = {
-    'address': ['address', '地址', '錢包地址'],
-    'collateral_amount': ['collateral', '抵押', '抵押金額'],
-    'symbol': ['symbol', '幣種', '代幣'],
-    # ... 更多欄位
+# Google Sheets 的 ID（從網址中取得）
+SPREADSHEET_ID = "your_spreadsheet_id_here"
+
+# 區塊瀏覽器網址所在的欄位
+URL_COLUMN = "C"
+
+# 開始和結束處理的行號
+START_ROW = 2
+END_ROW = None  # None 表示處理到最後一行
+```
+
+### 欄位映射設定
+```python
+# 硬編碼的欄位位置（0-based index）
+COLUMN_MAPPINGS = {
+    'last_updated': 4,       # E欄：Last Updated
+    'collateral_amount': 6,  # G欄：Collateral Amount
+    'open_positions': 7,     # H欄：Open Positions
+    # 第一組倉位
+    'symbol1': 8,            # I欄：Symbol1
+    'price1': 9,             # J欄：Price1
+    'size1': 10,             # K欄：Size1
+    'direction1': 11,        # L欄：Direction1
+    'realized_pnl1': 12,     # M欄：Realized PnL1
+    'unrealized_pnl1': 13,   # N欄：Unrealized PnL1
+    # 第二組倉位
+    'symbol2': 14,           # O欄：Symbol2
+    'price2': 15,            # P欄：Price2
+    'size2': 16,             # Q欄：Size2
+    'direction2': 17,        # R欄：Direction2
+    'realized_pnl2': 18,     # S欄：Realized PnL2
+    'unrealized_pnl2': 19,   # T欄：Unrealized PnL2
 }
 ```
 
-## 🔒 安全機制
+## 📝 使用範例
 
-- **硬編碼欄位位置**：使用固定的欄位索引，避免錯誤映射
-- **欄位驗證**：檢查欄位名稱是否正確
-- **白名單機制**：只更新指定的安全欄位
-- **詳細日誌**：清楚顯示每個更新操作
-
-## 📝 日誌說明
-
-程式執行時會顯示詳細的日誌：
-
+### Google Sheets 結構範例
 ```
-==================================================
-Google Sheets 自動處理程式
-==================================================
-啟動時間: 2025-01-19 12:00:00
-排程設定: 每個整點自動執行
-
-立即執行第一次...
-
-=== 步驟1：填寫 symbol/基本資料 ===
-驗證欄位位置:
-  E: Address -> address
-  F: Collateral Amount -> collateral_amount
-  H: Open Positions -> open_positions
-  ...
-
-=== 步驟2：根據 symbol 批次查價並填入 Price ===
-找到的幣種: ['KAITO', 'AVAX', 'TON']
-查價結果:
-  KAITO: $1.65
-  AVAX: $23.79
-  TON: $3.25
+A        B        C                    D        E                    F        G                H                    I        J       K       L        M            N               O        P       Q       R        S            T
+Name     Address  URL                 Balance  Last Updated         Change   Collateral Amount Open Positions      Symbol1  Price1  Size1   Direction1 Realized PnL1 Unrealized PnL1 Symbol2  Price2  Size2   Direction2 Realized PnL2 Unrealized PnL2
+Account1 0x123... https://scan.lighter.xyz/account/53015 $1000     2024/01/01 12:00:00        $50       $500        BTC | Size: 0.1 | Side: Long  BTC     45000    0.1     Long      $100      $200     ETH     3000     1.0     Short     $50       $150
 ```
 
-## 🐛 故障排除
+### 支援的網址格式
+- **Lighter**: `https://scan.lighter.xyz/account/53015`
+- **Etherscan**: `https://etherscan.io/address/0x123...`
+- **BSCscan**: `https://bscscan.com/address/0x123...`
+- **Polygonscan**: `https://polygonscan.com/address/0x123...`
+- **Arbiscan**: `https://arbiscan.io/address/0x123...`
+- **Optimistic Etherscan**: `https://optimistic.etherscan.io/address/0x123...`
+- **Solscan**: `https://solscan.io/account/123...`
+- **Solana Explorer**: `https://explorer.solana.com/address/123...`
+
+## 🔄 自動化流程
+
+### 執行步驟
+1. **認證檢查**：驗證 Google Sheets API 憑證
+2. **欄位驗證**：檢查 Google Sheets 欄位結構
+3. **資料爬取**：從區塊瀏覽器網址爬取資料
+4. **價格查詢**：批次查詢所有幣種的即時價格
+5. **資料更新**：將爬取和查詢的資料更新到 Google Sheets
+
+### 排程執行
+- **預設排程**：每小時自動執行一次
+- **立即執行**：啟動時立即執行一次
+- **手動執行**：可隨時手動執行
+
+## 🛠️ 故障排除
 
 ### 常見問題
+1. **認證失敗**：檢查 `credentials.json` 檔案和 Google Sheets 權限
+2. **欄位錯誤**：確認 Google Sheets 欄位結構與設定一致
+3. **網路錯誤**：檢查網路連線和目標網站可達性
+4. **API 限制**：CoinGecko API 有速率限制，程式會自動處理
 
-1. **認證錯誤**
-   - 檢查 `credentials.json` 是否正確
-   - 確認 Google Sheets API 已啟用
+### 日誌查看
+程式會輸出詳細的執行日誌，包括：
+- 認證狀態
+- 欄位驗證結果
+- 爬取進度
+- 價格查詢結果
+- 更新狀態
 
-2. **欄位映射錯誤**
-   - 確認 Google Sheets 表頭格式正確
-   - 檢查 `config.py` 中的設定
+## 📄 授權條款
 
-3. **價格查詢失敗**
-   - 檢查網路連線
-   - 確認幣種代號正確
+本專案採用 MIT 授權條款 - 詳見 [LICENSE](LICENSE) 檔案
 
-4. **API 配額限制**
-   - 程式會自動重試並延遲
-   - 考慮降低更新頻率
-
-### 錯誤代碼
-
-- `429`: API 配額限制，程式會自動重試
-- `401`: 認證失敗，檢查 credentials.json
-- `404`: Spreadsheet 不存在，檢查 SPREADSHEET_ID
-
-## 📄 授權
-
-本專案採用 MIT 授權條款。
-
-## 🤝 貢獻
+## 🤝 貢獻指南
 
 歡迎提交 Issue 和 Pull Request！
 
+詳見 [CONTRIBUTING.md](CONTRIBUTING.md)
+
 ## 📞 支援
 
-如有問題，請在 GitHub 上提交 Issue。
+如有問題或建議，請：
+1. 查看 [CHANGELOG.md](CHANGELOG.md) 了解最新更新
+2. 提交 GitHub Issue
+3. 檢查故障排除章節
 
 ---
 
-**注意**：請確保您的 Google Sheets 有適當的權限設定，並且不要將以下敏感檔案上傳到公開的版本控制系統：
-- `credentials.json`（Google Sheets API 憑證）
-- `config.py`（包含您的實際 Spreadsheet ID）
-- `token.pickle`（認證 token） 
+**版本**: v1.1.0  
+**更新日期**: 2024年1月  
+**支援平台**: Windows, macOS, Linux 

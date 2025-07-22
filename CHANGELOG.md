@@ -1,87 +1,57 @@
 # 更新日誌
 
-## [1.0.0] - 2025-01-19
+## [v1.1.0] - 2024-01-19
 
-### 新增功能
-- 🚀 初始版本發布
-- 📊 支援從區塊瀏覽器網址自動爬取交易資料
-- 💰 整合 CoinGecko API 自動獲取加密貨幣價格
-- 🔄 支援批次處理和自動重試機制
-- ⏰ 內建排程功能，支援每小時自動執行
-- 🛡️ 安全機制，防止覆蓋重要欄位（如公式）
+### ✨ 新增功能
+- **多組倉位支援**：新增對兩組 Open Positions 的完整支援
+- **獨立欄位管理**：每組倉位有獨立的 Symbol、Price、Size、Direction、PnL 欄位
+- **向後相容性**：保持與原有單倉位格式的完全相容性
 
-### 支援的區塊瀏覽器
-- Lighter (scan.lighter.xyz)
-- Etherscan
-- BSCScan
-- PolygonScan
-- Arbiscan
-- Optimistic Etherscan
-- Solscan
-- Solana Explorer
+### 🔧 技術改進
+- 更新 `scrape_block_explorer_data` 方法以支援兩組倉位資料提取
+- 修改 `fill_prices_by_symbol` 方法以批次處理兩組倉位的價格查詢
+- 更新欄位映射配置以支援新的欄位結構
 
-### 支援的資料欄位
-- Address（錢包地址）
-- Collateral Amount（抵押金額）
-- Open Positions（開放倉位）
-- Symbol（幣種代號）
-- Price（當前價格）
-- Size（倉位大小）
-- Direction（交易方向）
-- Realized PnL（已實現盈虧）
-- Unrealized PnL（未實現盈虧）
-- Last Updated（最後更新時間）
+### 📋 欄位結構更新
+- **第一組倉位**：Symbol1 (I欄)、Price1 (J欄)、Size1 (K欄)、Direction1 (L欄)、Realized PnL1 (M欄)、Unrealized PnL1 (N欄)
+- **第二組倉位**：Symbol2 (O欄)、Price2 (P欄)、Size2 (Q欄)、Direction2 (R欄)、Realized PnL2 (S欄)、Unrealized PnL2 (T欄)
+- 保持原有欄位作為主要倉位（向後相容）
 
-### 技術特色
-- 🔒 硬編碼欄位位置，確保更新安全性
-- 📝 詳細的日誌記錄和錯誤處理
-- 🔄 自動重試和延遲機制
-- 🎯 精確的資料提取和清理
-- ⚡ 批次處理優化，減少 API 呼叫
+### 📚 文檔更新
+- 更新 README.md 以反映新的兩組倉位功能
+- 更新 config_template.py 以包含新的欄位映射
+- 添加詳細的使用範例和欄位結構說明
 
-### 檔案結構
-```
-├── sheets_processor.py      # 主程式
-├── config_template.py       # 設定檔範本
-├── coingecko_price_fetcher.py  # 價格查詢模組
-├── setup.py                # 設定腳本
-├── run.bat                 # Windows 批次執行檔
-├── requirements.txt        # Python 依賴套件
-├── README.md              # 使用說明
-├── LICENSE                # 授權條款
-├── .gitignore            # Git 忽略檔案
-├── CHANGELOG.md          # 更新日誌
-├── CONTRIBUTING.md       # 貢獻指南
-├── credentials_template.json  # 憑證範本
-└── coin_mapping.json     # 幣種映射檔
-```
-
-### 安裝與使用
-1. 安裝 Python 3.8+ 和必要套件
-2. 設定 Google Sheets API 憑證
-3. 複製 `config_template.py` 為 `config.py` 並填入實際設定
-4. 執行 `python sheets_processor.py` 或雙擊 `run.bat`
-
-### 安全機制
-- ✅ 只更新指定的安全欄位
-- ✅ 驗證欄位名稱和位置
-- ✅ 保護包含公式的欄位
-- ✅ 詳細的更新日誌記錄
+### 🔒 安全性
+- 保持原有的欄位驗證和安全機制
+- 確保新欄位不會影響現有的安全設定
 
 ---
 
-## 未來計劃
+## [v1.0.0] - 2024-01-19
 
-### 計劃中的功能
-- 🔍 支援更多區塊瀏覽器
-- 📈 歷史價格追蹤
-- 🎨 自訂欄位映射介面
-- 📱 Web 介面
-- 🔔 通知功能（Email/Telegram）
-- 📊 資料分析和報表
+### 🎉 初始版本
+- **自動資料爬取**：從區塊瀏覽器網址自動提取交易資料
+- **智能價格查詢**：使用 CoinGecko API 自動獲取最新加密貨幣價格
+- **安全欄位更新**：只更新指定欄位，保護其他欄位不被覆蓋
+- **批次處理**：支援批次更新，減少 API 呼叫次數
+- **錯誤重試機制**：自動重試失敗的請求，確保資料完整性
+- **排程執行**：支援每小時自動執行
 
-### 技術改進
-- ⚡ 效能優化
-- 🛡️ 更強的安全機制
-- 📝 更詳細的錯誤處理
-- 🔧 更靈活的配置選項 
+### 🔧 核心功能
+- 支援多個區塊瀏覽器（Lighter、Etherscan、BSCscan 等）
+- 智能資料解析和清理
+- Google Sheets API 整合
+- 完整的錯誤處理和日誌記錄
+
+### 📋 支援的欄位
+- Address、Collateral Amount、Open Positions
+- Symbol、Price、Size、Direction
+- Realized PnL、Unrealized PnL
+- Last Updated
+
+### 🛠️ 技術特色
+- Python 3.8+ 支援
+- 安全的 Google API 認證流程
+- 硬編碼欄位位置確保安全性
+- 詳細的執行日誌和錯誤報告 

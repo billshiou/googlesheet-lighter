@@ -309,7 +309,7 @@ class SheetsProcessor:
         print(f"備用更新完成: {success_count}/{total_count} 個儲存格成功更新")
 
     def fill_prices_by_symbol(self, spreadsheet_id: str, start_row: int = 2, end_row: Optional[int] = None):
-        """第二步：根據 symbol 欄位批次查價，填入 Price 欄位"""
+        """第二步：根據 symbol 欄位批次查價，填入 Price 欄位（支援兩組倉位）"""
         header_range = "1:1"
         headers = self.read_sheet_data(spreadsheet_id, header_range)
         if not headers or not headers[0]:
@@ -318,49 +318,82 @@ class SheetsProcessor:
         header_row = headers[0]
         
         # 使用 config.py 中的欄位位置
-        symbol_col = config.COLUMN_MAPPINGS['symbol']   # I欄
-        price_col = config.COLUMN_MAPPINGS['price']     # J欄
+        symbol1_col = config.COLUMN_MAPPINGS['symbol1']   # I欄
+        price1_col = config.COLUMN_MAPPINGS['price1']     # J欄
+        symbol2_col = config.COLUMN_MAPPINGS['symbol2']   # O欄
+        price2_col = config.COLUMN_MAPPINGS['price2']     # P欄
         
         # 驗證欄位位置
-        if symbol_col >= len(header_row) or price_col >= len(header_row):
+        if (symbol1_col >= len(header_row) or price1_col >= len(header_row) or 
+            symbol2_col >= len(header_row) or price2_col >= len(header_row)):
             print("欄位索引超出範圍，停止執行")
             return
         
-        symbol_header = header_row[symbol_col]
-        price_header = header_row[price_col]
+        symbol1_header = header_row[symbol1_col]
+        price1_header = header_row[price1_col]
+        symbol2_header = header_row[symbol2_col]
+        price2_header = header_row[price2_col]
         
         print(f"\n價格查詢設定:")
-        print(f"  Symbol欄位: {chr(65 + symbol_col)} ({symbol_header})")
-        print(f"  Price欄位: {chr(65 + price_col)} ({price_header})")
+        print(f"  第一組倉位:")
+        print(f"    Symbol1欄位: {chr(65 + symbol1_col)} ({symbol1_header})")
+        print(f"    Price1欄位: {chr(65 + price1_col)} ({price1_header})")
+        print(f"  第二組倉位:")
+        print(f"    Symbol2欄位: {chr(65 + symbol2_col)} ({symbol2_header})")
+        print(f"    Price2欄位: {chr(65 + price2_col)} ({price2_header})")
         
         # 驗證欄位名稱
-        if 'symbol' not in symbol_header.lower():
-            print(f"⚠️  警告: {chr(65 + symbol_col)} 欄位名稱 '{symbol_header}' 可能不是 Symbol")
+        if 'symbol' not in symbol1_header.lower():
+            print(f"⚠️  警告: {chr(65 + symbol1_col)} 欄位名稱 '{symbol1_header}' 可能不是 Symbol1")
             return
         
-        if 'price' not in price_header.lower():
-            print(f"⚠️  警告: {chr(65 + price_col)} 欄位名稱 '{price_header}' 可能不是 Price")
+        if 'price' not in price1_header.lower():
+            print(f"⚠️  警告: {chr(65 + price1_col)} 欄位名稱 '{price1_header}' 可能不是 Price1")
+            return
+        
+        if 'symbol' not in symbol2_header.lower():
+            print(f"⚠️  警告: {chr(65 + symbol2_col)} 欄位名稱 '{symbol2_header}' 可能不是 Symbol2")
+            return
+        
+        if 'price' not in price2_header.lower():
+            print(f"⚠️  警告: {chr(65 + price2_col)} 欄位名稱 '{price2_header}' 可能不是 Price2")
             return
         
         data_range = f"A{start_row}:Z{end_row if end_row else ''}"
         all_data = self.read_sheet_data(spreadsheet_id, data_range)
         
-        # 收集所有 symbol
+        # 收集所有 symbol（第一組和第二組）
         symbol_set = set()
-        symbol_rows = {}  # 記錄每個symbol對應的行號
+        symbol1_rows = {}  # 記錄每個symbol1對應的行號
+        symbol2_rows = {}  # 記錄每個symbol2對應的行號
         
         for i, row in enumerate(all_data):
-            if len(row) > symbol_col and row[symbol_col]:
-                symbol = row[symbol_col]
+            # 處理第一組倉位
+            if len(row) > symbol1_col and row[symbol1_col]:
+                symbol = row[symbol1_col]
                 # 去掉s前綴用於價格查詢
                 clean_symbol = symbol.replace('s', '') if symbol.startswith('s') else symbol
                 symbol_set.add(clean_symbol)
-                if clean_symbol not in symbol_rows:
-                    symbol_rows[clean_symbol] = []
-                symbol_rows[clean_symbol].append(i)
+                if clean_symbol not in symbol1_rows:
+                    symbol1_rows[clean_symbol] = []
+                symbol1_rows[clean_symbol].append(i)
+            
+            # 處理第二組倉位
+            if len(row) > symbol2_col and row[symbol2_col]:
+                symbol = row[symbol2_col]
+                # 去掉s前綴用於價格查詢
+                clean_symbol = symbol.replace('s', '') if symbol.startswith('s') else symbol
+                symbol_set.add(clean_symbol)
+                if clean_symbol not in symbol2_rows:
+                    symbol2_rows[clean_symbol] = []
+                symbol2_rows[clean_symbol].append(i)
         
         print(f"\n找到的幣種: {list(symbol_set)}")
-        for symbol, rows in symbol_rows.items():
+        print(f"第一組倉位:")
+        for symbol, rows in symbol1_rows.items():
+            print(f"  {symbol}: 第 {[start_row + r for r in rows]} 行")
+        print(f"第二組倉位:")
+        for symbol, rows in symbol2_rows.items():
             print(f"  {symbol}: 第 {[start_row + r for r in rows]} 行")
         
         # 批次查價
@@ -376,21 +409,39 @@ class SheetsProcessor:
         updated_count = 0
         
         for i, row in enumerate(all_data):
-            if len(row) > symbol_col and row[symbol_col]:
-                symbol = row[symbol_col]
+            # 處理第一組倉位價格
+            if len(row) > symbol1_col and row[symbol1_col]:
+                symbol = row[symbol1_col]
                 # 去掉s前綴用於價格查詢
                 clean_symbol = symbol.replace('s', '') if symbol.startswith('s') else symbol
                 price = prices.get(clean_symbol)
                 if price is not None:
-                    col_letter = chr(65 + price_col)
+                    col_letter = chr(65 + price1_col)
                     row_num = start_row + i
                     cell = f"{col_letter}{row_num}"
                     value = self.clean_monetary_value(f"{price:.2f}")
                     price_updates.append((cell, value))
-                    print(f"  準備更新價格: {cell} ({price_header}) = {value} ({clean_symbol})")
+                    print(f"  準備更新第一組價格: {cell} ({price1_header}) = {value} ({clean_symbol})")
                     updated_count += 1
                 else:
-                    print(f"  跳過價格更新: {clean_symbol} 沒有價格資料")
+                    print(f"  跳過第一組價格更新: {clean_symbol} 沒有價格資料")
+            
+            # 處理第二組倉位價格
+            if len(row) > symbol2_col and row[symbol2_col]:
+                symbol = row[symbol2_col]
+                # 去掉s前綴用於價格查詢
+                clean_symbol = symbol.replace('s', '') if symbol.startswith('s') else symbol
+                price = prices.get(clean_symbol)
+                if price is not None:
+                    col_letter = chr(65 + price2_col)
+                    row_num = start_row + i
+                    cell = f"{col_letter}{row_num}"
+                    value = self.clean_monetary_value(f"{price:.2f}")
+                    price_updates.append((cell, value))
+                    print(f"  準備更新第二組價格: {cell} ({price2_header}) = {value} ({clean_symbol})")
+                    updated_count += 1
+                else:
+                    print(f"  跳過第二組價格更新: {clean_symbol} 沒有價格資料")
         
         # 批次更新價格
         if price_updates:
@@ -430,12 +481,27 @@ class SheetsProcessor:
                     'change': '',
                     'last_activity': '',
                     'last_updated': datetime.now().strftime('%Y/%m/%d %H:%M:%S'),
+                    # 第一組倉位
+                    'symbol1': '',
+                    'size1': '',
+                    'direction1': '',
+                    'realized_pnl1': '',
+                    'unrealized_pnl1': '',
+                    'price1': '',
+                    # 第二組倉位
+                    'symbol2': '',
+                    'size2': '',
+                    'direction2': '',
+                    'realized_pnl2': '',
+                    'unrealized_pnl2': '',
+                    'price2': '',
+                    # 保持向後相容的欄位
                     'symbol': '',
                     'size': '',
                     'direction': '',
                     'realized_pnl': '',
                     'unrealized_pnl': '',
-                    'current_price': ''  # 新增價格欄位
+                    'current_price': ''  # 保留原有價格欄位
                 }
                 
                 # 尋找地址（通常是以0x開頭的長字串）
@@ -454,9 +520,6 @@ class SheetsProcessor:
                         # 第二個金額通常是變化
                         elif not result['change']:
                             result['change'] = self.clean_monetary_value(text)
-                        # 第三個金額可能是抵押金額（先不設定，讓後面的專門處理）
-                        # elif not result['collateral_amount']:
-                        #     result['collateral_amount'] = text
                 
                 # 尋找Collateral Amount - 使用更簡單的方法
                 # 從所有文字中尋找包含"Collateral Amount:"的行
@@ -482,10 +545,16 @@ class SheetsProcessor:
                             result['collateral_amount'] = self.clean_monetary_value(collateral_amount)
                             break
                 
-                # 尋找Open Positions - 只顯示倉位資訊
+                # 尋找Open Positions - 支援兩組倉位
                 open_positions = []
+                position_count = 0
+                
                 for idx, line in enumerate(lines):
                     if ('Size:' in line and 'Side:' in line):
+                        position_count += 1
+                        if position_count > 2:  # 只處理前兩個倉位
+                            break
+                            
                         # 幣種判斷 - 幣種通常直接跟在Open Positions後面
                         symbol = ''
                         
@@ -558,15 +627,32 @@ class SheetsProcessor:
                             
                             open_positions.append(position_info)
                             
-                            # 設定第一個倉位的詳細資訊
-                            if not result['symbol']:
-                                # 去掉s前綴
+                            # 設定對應組別的詳細資訊
+                            if position_count == 1:
+                                # 第一組倉位
                                 clean_symbol = symbol.replace('s', '') if symbol.startswith('s') else symbol
-                                result['symbol'] = clean_symbol
-                                result['size'] = size
-                                result['direction'] = side
-                                result['realized_pnl'] = realized_pnl
-                                result['unrealized_pnl'] = unrealized_pnl
+                                result['symbol1'] = clean_symbol
+                                result['size1'] = size
+                                result['direction1'] = side
+                                result['realized_pnl1'] = realized_pnl
+                                result['unrealized_pnl1'] = unrealized_pnl
+                                
+                                # 設定第一個倉位為主要倉位（保持向後相容）
+                                if not result['symbol']:
+                                    result['symbol'] = clean_symbol
+                                    result['size'] = size
+                                    result['direction'] = side
+                                    result['realized_pnl'] = realized_pnl
+                                    result['unrealized_pnl'] = unrealized_pnl
+                                    
+                            elif position_count == 2:
+                                # 第二組倉位
+                                clean_symbol = symbol.replace('s', '') if symbol.startswith('s') else symbol
+                                result['symbol2'] = clean_symbol
+                                result['size2'] = size
+                                result['direction2'] = side
+                                result['realized_pnl2'] = realized_pnl
+                                result['unrealized_pnl2'] = unrealized_pnl
                 
                 # 組合所有倉位資訊
                 if open_positions:

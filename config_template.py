@@ -33,12 +33,27 @@ COLUMN_MAPPINGS = {
     'last_updated': 4,       # E欄：Last Updated
     'collateral_amount': 6,  # G欄：Collateral Amount
     'open_positions': 7,     # H欄：Open Positions
-    'symbol': 8,             # I欄：Symbol
-    'price': 9,              # J欄：Price
-    'size': 10,              # K欄：Size
-    'direction': 11,         # L欄：Direction
-    'realized_pnl': 12,      # M欄：Realized PnL
-    'unrealized_pnl': 13,    # N欄：Unrealized PnL
+    # 第一組倉位
+    'symbol1': 8,            # I欄：Symbol1
+    'price1': 9,             # J欄：Price1
+    'size1': 10,             # K欄：Size1
+    'direction1': 11,        # L欄：Direction1
+    'realized_pnl1': 12,     # M欄：Realized PnL1
+    'unrealized_pnl1': 13,   # N欄：Unrealized PnL1
+    # 第二組倉位
+    'symbol2': 14,           # O欄：Symbol2
+    'price2': 15,            # P欄：Price2
+    'size2': 16,             # Q欄：Size2
+    'direction2': 17,        # R欄：Direction2
+    'realized_pnl2': 18,     # S欄：Realized PnL2
+    'unrealized_pnl2': 19,   # T欄：Unrealized PnL2
+    # 保持向後相容的欄位
+    'symbol': 8,             # I欄：Symbol（與 Symbol1 相同）
+    'price': 9,              # J欄：Price（與 Price1 相同）
+    'size': 10,              # K欄：Size（與 Size1 相同）
+    'direction': 11,         # L欄：Direction（與 Direction1 相同）
+    'realized_pnl': 12,      # M欄：Realized PnL（與 Realized PnL1 相同）
+    'unrealized_pnl': 13,    # N欄：Unrealized PnL（與 Unrealized PnL1 相同）
 }
 
 # 預期的欄位名稱（用於驗證）
@@ -46,12 +61,20 @@ EXPECTED_COLUMN_NAMES = {
     4: ['last updated', 'last_updated', '最後更新', '更新時間'],
     6: ['collateral amount', 'collateral', '抵押', '抵押金額'],
     7: ['open positions', 'open_positions', '開放倉位', '倉位'],
-    8: ['symbol', '幣種', '代幣', 'symbol'],
-    9: ['price', '價格', 'current price'],
-    10: ['size', '大小', '倉位大小'],
-    11: ['direction', '方向', 'side', '交易方向'],
-    12: ['realized pnl', 'realized_pnl', '已實現盈虧'],
-    13: ['unrealized pnl', 'unrealized_pnl', '未實現盈虧'],
+    # 第一組倉位
+    8: ['symbol1', 'symbol', '幣種1', '代幣1', 'symbol'],
+    9: ['price1', 'price', '價格1', 'current price'],
+    10: ['size1', 'size', '大小1', '倉位大小1'],
+    11: ['direction1', 'direction', '方向1', 'side1', '交易方向1'],
+    12: ['realized pnl1', 'realized_pnl1', '已實現盈虧1'],
+    13: ['unrealized pnl1', 'unrealized_pnl1', '未實現盈虧1'],
+    # 第二組倉位
+    14: ['symbol2', '幣種2', '代幣2'],
+    15: ['price2', '價格2'],
+    16: ['size2', '大小2', '倉位大小2'],
+    17: ['direction2', '方向2', 'side2', '交易方向2'],
+    18: ['realized pnl2', 'realized_pnl2', '已實現盈虧2'],
+    19: ['unrealized pnl2', 'unrealized_pnl2', '未實現盈虧2'],
 }
 
 # ============================================================================
