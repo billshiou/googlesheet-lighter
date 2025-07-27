@@ -94,7 +94,11 @@ class SheetsProcessor:
                 data_len = len(row_data)
                 start_col = 'A'
                 end_col = chr(ord('A') + data_len - 1)
-                range_name = f"{start_col}{row_idx}:{end_col}{row_idx}"
+                range_name = f"交易!{start_col}{row_idx}:{end_col}{row_idx}"
+            else:
+                # 添加分頁名稱
+                if not range_name.startswith('交易!'):
+                    range_name = f"交易!{range_name}"
             body = {
                 'values': values
             }
@@ -113,24 +117,27 @@ class SheetsProcessor:
     def update_single_cell(self, spreadsheet_id: str, cell: str, value):
         """只更新單一 cell，不動其他欄位"""
         try:
+            # 寫入到第二個分頁「交易」（從哪讀就寫到哪）
+            cell_with_sheet = f"交易!{cell}"
             body = {'values': [[value]]}
             result = self.service.spreadsheets().values().update(
                 spreadsheetId=spreadsheet_id,
-                range=cell,
+                range=cell_with_sheet,
                 valueInputOption='USER_ENTERED',
                 body=body
             ).execute()
-            print(f"已更新 {cell} → {value}")
+            print(f"已更新 {cell_with_sheet} → {value}")
             return True
         except Exception as e:
-            print(f"更新 {cell} 時發生錯誤: {e}")
+            print(f"更新 {cell_with_sheet} 時發生錯誤: {e}")
             return False
 
 
 
     def fill_symbols_from_urls(self, spreadsheet_id: str, url_column: str, start_row: int = 2, end_row: Optional[int] = None):
         """第一步：只根據網址爬取資料，填寫 symbol 等欄位，不處理價格"""
-        header_range = "1:1"
+        # 讀取第二個分頁（交易分頁）的第1行作為標題行
+        header_range = "交易!1:1"
         headers = self.read_sheet_data(spreadsheet_id, header_range)
         if not headers or not headers[0]:
             print("無法讀取表頭")
@@ -164,9 +171,9 @@ class SheetsProcessor:
             print("欄位驗證失敗，停止執行以避免覆蓋錯誤欄位")
             return
         
-        url_range = f"{url_column}{start_row}:{url_column}{end_row if end_row else ''}"
+        url_range = f"交易!{url_column}{start_row}:{url_column}{end_row if end_row else ''}"
         url_data = self.read_sheet_data(spreadsheet_id, url_range)
-        data_range = f"A{start_row}:Z{end_row if end_row else ''}"
+        data_range = f"交易!A{start_row}:Z{end_row if end_row else ''}"
         all_data = self.read_sheet_data(spreadsheet_id, data_range)
         
         # 批次更新，減少 API 呼叫
@@ -225,8 +232,10 @@ class SheetsProcessor:
             all_updates = []
             for row_updates in batch_updates:
                 for cell, value in row_updates:
+                    # 添加分頁名稱
+                    cell_with_sheet = f"交易!{cell}"
                     all_updates.append({
-                        'range': cell,
+                        'range': cell_with_sheet,
                         'values': [[value]]
                     })
             
@@ -310,7 +319,7 @@ class SheetsProcessor:
 
     def fill_prices_by_symbol(self, spreadsheet_id: str, start_row: int = 2, end_row: Optional[int] = None):
         """第二步：根據 symbol 欄位批次查價，填入 Price 欄位（支援兩組倉位）"""
-        header_range = "1:1"
+        header_range = "交易!1:1"  # 讀取第二個分頁（交易分頁）的第1行作為標題行
         headers = self.read_sheet_data(spreadsheet_id, header_range)
         if not headers or not headers[0]:
             print("無法讀取表頭")
@@ -318,10 +327,10 @@ class SheetsProcessor:
         header_row = headers[0]
         
         # 使用 config.py 中的欄位位置
-        symbol1_col = config.COLUMN_MAPPINGS['symbol1']   # I欄
-        price1_col = config.COLUMN_MAPPINGS['price1']     # J欄
-        symbol2_col = config.COLUMN_MAPPINGS['symbol2']   # O欄
-        price2_col = config.COLUMN_MAPPINGS['price2']     # P欄
+        symbol1_col = config.COLUMN_MAPPINGS['symbol']    # I欄
+        price1_col = config.COLUMN_MAPPINGS['price']      # J欄
+        symbol2_col = config.COLUMN_MAPPINGS['symbol2']   # P欄
+        price2_col = config.COLUMN_MAPPINGS['price2']     # Q欄
         
         # 驗證欄位位置
         if (symbol1_col >= len(header_row) or price1_col >= len(header_row) or 
@@ -359,7 +368,7 @@ class SheetsProcessor:
             print(f"⚠️  警告: {chr(65 + price2_col)} 欄位名稱 '{price2_header}' 可能不是 Price2")
             return
         
-        data_range = f"A{start_row}:Z{end_row if end_row else ''}"
+        data_range = f"交易!A{start_row}:Z{end_row if end_row else ''}"
         all_data = self.read_sheet_data(spreadsheet_id, data_range)
         
         # 收集所有 symbol（第一組和第二組）
@@ -549,114 +558,65 @@ class SheetsProcessor:
                 open_positions = []
                 position_count = 0
                 
-                for idx, line in enumerate(lines):
-                    if ('Size:' in line and 'Side:' in line):
-                        position_count += 1
-                        if position_count > 2:  # 只處理前兩個倉位
-                            break
-                            
-                        # 幣種判斷 - 幣種通常直接跟在Open Positions後面
-                        symbol = ''
-                        
-                        # 方法1: 在包含Size:的行中尋找幣種
-                        # 幣種通常在"Open Positions"後面，Size:前面
-                        if 'Open Positions' in line:
-                            open_pos_start = line.find('Open Positions') + 13  # "Open Positions"長度
-                            size_start = line.find('Size:')
-                            if size_start > open_pos_start:
-                                symbol_part = line[open_pos_start:size_start].strip()
-                                # 清理可能的空格和特殊字符
-                                symbol = symbol_part.split()[0] if symbol_part.split() else ''
-                        
-                        # 方法2: 如果方法1沒找到，嘗試從Size:前面找
-                        if not symbol:
-                            size_start = line.find('Size:')
-                            if size_start > 0:
-                                before_size = line[:size_start].strip()
-                                # 找最後一個單詞作為幣種
-                                words = before_size.split()
-                                if words:
-                                    potential_symbol = words[-1]
-                                    # 排除明顯不是幣種的詞
-                                    if potential_symbol.lower() not in ['positions', 'open', 'zklighter']:
-                                        symbol = potential_symbol
-                        
-                        # 只處理有幣種的倉位
-                        if symbol:
-                            size = ''
-                            size_start = line.find('Size:') + 5
-                            size_end = line.find('Side:')
-                            if size_start != -1 and size_end != -1:
-                                size = line[size_start:size_end].strip()
-                            
-                            side = ''
-                            side_start = line.find('Side:') + 5
-                            side_end = line.find('Realized PnL:')
-                            if side_end == -1:
-                                side_end = len(line)
-                            side = line[side_start:side_end].strip()
-                            
-                            # 提取PnL（只保留金額）
-                            realized_pnl = ''
-                            unrealized_pnl = ''
-                            
-                            # 尋找Realized PnL - 使用正則表達式
-                            realized_match = re.search(r'Realized PnL:\s*([$\-\d,\.]+)', line)
-                            if realized_match:
-                                realized_text = realized_match.group(1)
-                                # 清理可能的額外文字
-                                realized_text = re.sub(r'[^\d\-\.]', '', realized_text)
-                                realized_pnl = self.clean_monetary_value(realized_text)
-                            
-                            # 尋找Unrealized PnL - 使用正則表達式
-                            unrealized_match = re.search(r'Unrealized PnL:\s*([$\-\d,\.]+)', line)
-                            if unrealized_match:
-                                unrealized_text = unrealized_match.group(1)
-                                # 清理可能的額外文字
-                                unrealized_text = re.sub(r'[^\d\-\.]', '', unrealized_text)
-                                unrealized_pnl = self.clean_monetary_value(unrealized_text)
-                            
-                            # 組合倉位資訊
-                            # 去掉s前綴用於顯示
-                            clean_symbol = symbol.replace('s', '') if symbol.startswith('s') else symbol
-                            position_info = f"{clean_symbol} | Size: {size} | Side: {side}"
-                            if realized_pnl:
-                                position_info += f" | Realized PnL: {realized_pnl}"
-                            if unrealized_pnl:
-                                position_info += f" | Unrealized PnL: {unrealized_pnl}"
-                            
-                            open_positions.append(position_info)
-                            
-                            # 設定對應組別的詳細資訊
-                            if position_count == 1:
-                                # 第一組倉位
-                                clean_symbol = symbol.replace('s', '') if symbol.startswith('s') else symbol
-                                result['symbol1'] = clean_symbol
-                                result['size1'] = size
-                                result['direction1'] = side
-                                result['realized_pnl1'] = realized_pnl
-                                result['unrealized_pnl1'] = unrealized_pnl
-                                
-                                # 設定第一個倉位為主要倉位（保持向後相容）
-                                if not result['symbol']:
-                                    result['symbol'] = clean_symbol
-                                    result['size'] = size
-                                    result['direction'] = side
-                                    result['realized_pnl'] = realized_pnl
-                                    result['unrealized_pnl'] = unrealized_pnl
-                                    
-                            elif position_count == 2:
-                                # 第二組倉位
-                                clean_symbol = symbol.replace('s', '') if symbol.startswith('s') else symbol
-                                result['symbol2'] = clean_symbol
-                                result['size2'] = size
-                                result['direction2'] = side
-                                result['realized_pnl2'] = realized_pnl
-                                result['unrealized_pnl2'] = unrealized_pnl
+                # 由於頁面內容可能被壓縮在一行中，使用正則表達式來匹配倉位模式
+                all_text = soup.get_text()
                 
-                # 組合所有倉位資訊
-                if open_positions:
-                    result['open_positions'] = ' | '.join(open_positions)
+                # 使用正則表達式來匹配倉位模式
+                position_pattern = r'([A-Z]{2,10})Size:\s*([\d\.]+)\s*Side:\s*(SHORT|LONG)\s*Realized PnL:\s*([$\-\d,\.]+)\s*Unrealized PnL:\s*([$\-\d,\.]+)'
+                matches = re.findall(position_pattern, all_text)
+                
+                print(f"找到 {len(matches)} 個倉位匹配")
+                
+                for i, match in enumerate(matches[:2]):  # 只處理前兩個倉位
+                    position_count += 1
+                    symbol, size, side, realized_pnl, unrealized_pnl = match
+                    
+                    # 清理PnL值
+                    realized_pnl_clean = self.clean_monetary_value(realized_pnl)
+                    unrealized_pnl_clean = self.clean_monetary_value(unrealized_pnl)
+                    
+                    # 去掉s前綴用於顯示
+                    clean_symbol = symbol.replace('s', '') if symbol.startswith('s') else symbol
+                    
+                    # 組合倉位資訊
+                    position_info = f"{clean_symbol} | Size: {size} | Side: {side}"
+                    if realized_pnl_clean:
+                        position_info += f" | Realized PnL: {realized_pnl_clean}"
+                    if unrealized_pnl_clean:
+                        position_info += f" | Unrealized PnL: {unrealized_pnl_clean}"
+                    
+                    open_positions.append(position_info)
+                    
+                    # 設定對應組別的詳細資訊
+                    if position_count == 1:
+                        # 第一組倉位
+                        result['symbol1'] = clean_symbol
+                        result['size1'] = size
+                        result['direction1'] = side
+                        result['realized_pnl1'] = realized_pnl_clean
+                        result['unrealized_pnl1'] = unrealized_pnl_clean
+                        
+                        # 設定第一個倉位為主要倉位（保持向後相容）
+                        if not result['symbol']:
+                            result['symbol'] = clean_symbol
+                            result['size'] = size
+                            result['direction'] = side
+                            result['realized_pnl'] = realized_pnl_clean
+                            result['unrealized_pnl'] = unrealized_pnl_clean
+                            
+                    elif position_count == 2:
+                        # 第二組倉位
+                        result['symbol2'] = clean_symbol
+                        result['size2'] = size
+                        result['direction2'] = side
+                        result['realized_pnl2'] = realized_pnl_clean
+                        result['unrealized_pnl2'] = unrealized_pnl_clean
+                
+                # 組合倉位資訊 - 分別填入 Open Positions1 和 Open Positions2
+                if len(open_positions) >= 1:
+                    result['open_positions'] = open_positions[0]  # 第一組倉位
+                if len(open_positions) >= 2:
+                    result['open_positions2'] = open_positions[1]  # 第二組倉位
                 
                 print(f"成功爬取資料: {url}")
                 return result

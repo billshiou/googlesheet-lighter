@@ -2,142 +2,191 @@
 
 一個自動化工具，用於從區塊瀏覽器網址爬取資料並更新 Google Sheets，支援多組倉位管理和即時價格查詢。
 
-## ✨ 主要功能
+## 📚 文件導覽
 
-### 🔄 自動資料爬取
-- **多區塊瀏覽器支援**：Lighter、Etherscan、BSCscan、Polygonscan、Arbiscan、Optimistic Etherscan、Solscan、Solana Explorer
-- **智能資料解析**：自動提取地址、餘額、抵押金額、倉位資訊等
-- **重試機制**：網路錯誤時自動重試，確保資料完整性
+- **[USAGE_GUIDE.md](USAGE_GUIDE.md)** - 5分鐘快速開始指南
+- **[FILES.md](FILES.md)** - 詳細檔案清單說明
+- **[CHANGELOG.md](CHANGELOG.md)** - 版本更新日誌
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** - 貢獻指南
 
-### 📊 多組倉位管理
-- **雙倉位支援**：同時管理兩組 Open Positions
-- **獨立欄位**：每組倉位有獨立的 Symbol、Price、Size、Direction、PnL 欄位
-- **向後相容**：保持與原有單倉位格式的相容性
+## 📁 專案檔案結構
 
-### 💰 即時價格查詢
-- **CoinGecko API 整合**：獲取即時加密貨幣價格
-- **批次處理**：高效批次查詢，減少 API 呼叫次數
-- **智能延遲**：避免 API 限制，確保穩定運行
-
-### 🔒 安全與驗證
-- **欄位驗證**：自動驗證 Google Sheets 欄位結構
-- **安全模式**：只更新指定欄位，避免意外覆蓋
-- **憑證管理**：安全的 Google API 認證流程
-
-## 📋 支援的欄位結構
-
-### 基本資訊欄位
-- **Last Updated** (E欄)：最後更新時間
-- **Collateral Amount** (G欄)：抵押金額
-- **Open Positions** (H欄)：倉位摘要資訊
-
-### 第一組倉位欄位
-- **Symbol1** (I欄)：幣種代號
-- **Price1** (J欄)：當前價格
-- **Size1** (K欄)：倉位大小
-- **Direction1** (L欄)：交易方向
-- **Realized PnL1** (M欄)：已實現盈虧
-- **Unrealized PnL1** (N欄)：未實現盈虧
-
-### 第二組倉位欄位
-- **Symbol2** (O欄)：幣種代號
-- **Price2** (P欄)：當前價格
-- **Size2** (Q欄)：倉位大小
-- **Direction2** (R欄)：交易方向
-- **Realized PnL2** (S欄)：已實現盈虧
-- **Unrealized PnL2** (T欄)：未實現盈虧
-
-## 🚀 快速開始
-
-### 1. 環境準備
-```bash
-# 安裝 Python 3.8+
-# 下載專案檔案
+```
+整理lighter/
+├── 📄 sheets_processor.py      # 主程式檔案
+├── 📄 config.py               # 設定檔（需要自行建立）
+├── 📄 config_template.py      # 設定檔範本
+├── 📄 coingecko_price_fetcher.py  # CoinGecko 價格查詢模組
+├── 📄 requirements.txt        # Python 依賴套件清單
+├── 📄 run.bat                # Windows 快速啟動腳本
+├── 📄 setup.py               # 初始設定工具
+├── 📄 credentials_template.json  # Google API 憑證範本
+├── 📄 coin_mapping.json      # 幣種對應表
+├── 📄 README.md              # 使用說明（本檔案）
+├── 📄 CHANGELOG.md           # 更新日誌
+├── 📄 CONTRIBUTING.md        # 貢獻指南
+├── 📄 LICENSE                # 授權條款
+└── 📄 .gitignore             # Git 忽略檔案清單
 ```
 
-### 2. 安裝依賴
+## 🚀 快速開始指南
+
+### 步驟 1：環境準備
+1. **安裝 Python 3.8 或更高版本**
+   - 下載網址：https://www.python.org/downloads/
+   - 安裝時請勾選 "Add Python to PATH"
+
+2. **下載專案檔案**
+   - 將所有檔案下載到同一個資料夾
+   - 確保檔案結構完整
+
+### 步驟 2：Google Sheets API 設定
+1. **前往 Google Cloud Console**
+   - 網址：https://console.cloud.google.com/
+   - 建立新專案或選擇現有專案
+
+2. **啟用 Google Sheets API**
+   - 在左側選單選擇 "API 和服務" > "程式庫"
+   - 搜尋 "Google Sheets API" 並啟用
+
+3. **建立憑證**
+   - 前往 "API 和服務" > "憑證"
+   - 點擊 "建立憑證" > "OAuth 2.0 用戶端 ID"
+   - 選擇 "桌面應用程式"
+   - 下載 JSON 檔案並重新命名為 `credentials.json`
+   - 將檔案放在專案根目錄
+
+### 步驟 3：專案設定
+1. **複製設定檔**
+   ```bash
+   # 複製設定檔範本
+   copy config_template.py config.py
+   ```
+
+2. **編輯 config.py**
+   - 開啟 `config.py` 檔案
+   - 修改 `SPREADSHEET_ID` 為您的 Google Sheets ID
+   - 確認其他設定符合您的需求
+
+3. **準備 Google Sheets**
+   - 建立新的 Google Sheets 或使用現有的
+   - 確保有第二個分頁名為「交易」
+   - 按照下方欄位結構設定標題行
+
+### 步驟 4：執行工具
+
+#### 方法一：使用 Windows 批次檔（推薦）
 ```bash
-pip install -r requirements.txt
-```
-
-### 3. 設定 Google Sheets API
-1. 前往 [Google Cloud Console](https://console.cloud.google.com/)
-2. 建立新專案或選擇現有專案
-3. 啟用 Google Sheets API
-4. 建立服務帳號並下載 `credentials.json`
-5. 將 `credentials.json` 放在專案根目錄
-
-### 4. 設定專案
-1. 複製 `config_template.py` 為 `config.py`
-2. 編輯 `config.py`，填入您的 Google Sheets ID 和欄位設定
-3. 確保您的 Google Sheets 有正確的欄位結構
-
-### 5. 執行工具
-```bash
-# Windows
+# 雙擊執行
 run.bat
+```
 
-# 或直接執行
+#### 方法二：手動執行
+```bash
+# 安裝依賴套件
+pip install -r requirements.txt
+
+# 執行程式
 python sheets_processor.py
 ```
 
-## ⚙️ 設定說明
+## 📊 Google Sheets 欄位結構
 
-### Google Sheets 設定
-```python
-# Google Sheets 的 ID（從網址中取得）
-SPREADSHEET_ID = "your_spreadsheet_id_here"
+### 必要欄位設定
+您的 Google Sheets 第二個分頁「交易」需要包含以下欄位：
 
-# 區塊瀏覽器網址所在的欄位
-URL_COLUMN = "C"
+| 欄位 | 欄位名稱 | 說明 |
+|------|----------|------|
+| A | Name | 帳戶名稱 |
+| B | Address | 錢包地址 |
+| C | URL | 區塊瀏覽器網址 |
+| D | Balance | 餘額 |
+| E | Last Updated | 最後更新時間 |
+| F | Change | 變化金額 |
+| G | Collateral Amount | 抵押金額 |
+| H | Open Positions1 | 第一組倉位摘要 |
+| I | Symbol1 | 第一組幣種代號 |
+| J | Price1 | 第一組當前價格 |
+| K | Size1 | 第一組倉位大小 |
+| L | Direction1 | 第一組交易方向 |
+| M | Realized PnL1 | 第一組已實現盈虧 |
+| N | Unrealized PnL1 | 第一組未實現盈虧 |
+| O | Open Positions2 | 第二組倉位摘要 |
+| P | Symbol2 | 第二組幣種代號 |
+| Q | Price2 | 第二組當前價格 |
+| R | Size2 | 第二組倉位大小 |
+| S | Direction2 | 第二組交易方向 |
+| T | Realized PnL2 | 第二組已實現盈虧 |
+| U | Unrealized PnL2 | 第二組未實現盈虧 |
 
-# 開始和結束處理的行號
-START_ROW = 2
-END_ROW = None  # None 表示處理到最後一行
+### 範例資料
+```
+Name     Address  URL                 Balance  Last Updated         Change   Collateral Amount Open Positions1     Symbol1  Price1  Size1   Direction1 Realized PnL1 Unrealized PnL1 Open Positions2 Symbol2  Price2  Size2   Direction2 Realized PnL2 Unrealized PnL2
+Account1 0x123... https://scan.lighter.xyz/account/53015 $1000     2024/01/01 12:00:00        $50       $500        BTC | Size: 0.1 | Side: Long  BTC     45000    0.1     Long      $100      $200     ETH | Size: 1.0 | Side: Short ETH     3000     1.0     Short     $50       $150
 ```
 
-### 欄位映射設定
+## 🔧 設定檔說明
+
+### 主要設定參數
 ```python
-# 硬編碼的欄位位置（0-based index）
+# Google Sheets 設定
+SPREADSHEET_ID = "your_spreadsheet_id_here"  # 從網址中取得
+URL_COLUMN = "C"                             # 網址所在欄位
+START_ROW = 2                                # 開始處理行號
+END_ROW = None                               # 結束處理行號（None=處理到最後）
+
+# 排程設定
+ENABLE_SCHEDULER = True                      # 是否啟用自動排程
+SCHEDULE_INTERVAL_MINUTES = 60               # 排程間隔（分鐘）
+RUN_IMMEDIATELY = True                       # 啟動時是否立即執行
+```
+
+### 如何取得 Google Sheets ID
+1. 開啟您的 Google Sheets
+2. 從網址中複製 ID：
+   ```
+   https://docs.google.com/spreadsheets/d/1AzFHfAT65IA5p9BS-mMlEOeNRnCHNpAIdZNJ62L_-hY/edit
+   ```
+   其中 `1AzFHfAT65IA5p9BS-mMlEOeNRnCHNpAIdZNJ62L_-hY` 就是 SPREADSHEET_ID
+
+## 🌐 支援的區塊瀏覽器
+
+| 平台 | 網址格式 | 範例 |
+|------|----------|------|
+| **Lighter** | `https://scan.lighter.xyz/account/53015` | 主要支援平台 |
+| **Etherscan** | `https://etherscan.io/address/0x123...` | Ethereum 主網 |
+| **BSCscan** | `https://bscscan.com/address/0x123...` | BSC 網路 |
+| **Polygonscan** | `https://polygonscan.com/address/0x123...` | Polygon 網路 |
+| **Arbiscan** | `https://arbiscan.io/address/0x123...` | Arbitrum 網路 |
+| **Optimistic Etherscan** | `https://optimistic.etherscan.io/address/0x123...` | Optimism 網路 |
+| **Solscan** | `https://solscan.io/account/123...` | Solana 網路 |
+| **Solana Explorer** | `https://explorer.solana.com/address/123...` | Solana 官方瀏覽器 |
+
+## ⚙️ 進階設定
+
+### 自訂欄位位置
+如果您需要修改欄位位置，請編輯 `config.py` 中的 `COLUMN_MAPPINGS`：
+
+```python
 COLUMN_MAPPINGS = {
     'last_updated': 4,       # E欄：Last Updated
     'collateral_amount': 6,  # G欄：Collateral Amount
-    'open_positions': 7,     # H欄：Open Positions
-    # 第一組倉位
-    'symbol1': 8,            # I欄：Symbol1
-    'price1': 9,             # J欄：Price1
-    'size1': 10,             # K欄：Size1
-    'direction1': 11,        # L欄：Direction1
-    'realized_pnl1': 12,     # M欄：Realized PnL1
-    'unrealized_pnl1': 13,   # N欄：Unrealized PnL1
-    # 第二組倉位
-    'symbol2': 14,           # O欄：Symbol2
-    'price2': 15,            # P欄：Price2
-    'size2': 16,             # Q欄：Size2
-    'direction2': 17,        # R欄：Direction2
-    'realized_pnl2': 18,     # S欄：Realized PnL2
-    'unrealized_pnl2': 19,   # T欄：Unrealized PnL2
+    'symbol': 8,             # I欄：Symbol1
+    'price': 9,              # J欄：Price1
+    # ... 其他欄位
 }
 ```
 
-## 📝 使用範例
+### API 設定調整
+```python
+# CoinGecko API 設定
+COINGECKO_API_DELAY = 1.2    # API 呼叫間隔（秒）
+COINGECKO_MAX_RETRIES = 3    # 最大重試次數
 
-### Google Sheets 結構範例
+# 批次處理設定
+BATCH_SIZE = 10              # 批次更新大小
+BATCH_DELAY = 2              # 批次間隔（秒）
 ```
-A        B        C                    D        E                    F        G                H                    I        J       K       L        M            N               O        P       Q       R        S            T
-Name     Address  URL                 Balance  Last Updated         Change   Collateral Amount Open Positions      Symbol1  Price1  Size1   Direction1 Realized PnL1 Unrealized PnL1 Symbol2  Price2  Size2   Direction2 Realized PnL2 Unrealized PnL2
-Account1 0x123... https://scan.lighter.xyz/account/53015 $1000     2024/01/01 12:00:00        $50       $500        BTC | Size: 0.1 | Side: Long  BTC     45000    0.1     Long      $100      $200     ETH     3000     1.0     Short     $50       $150
-```
-
-### 支援的網址格式
-- **Lighter**: `https://scan.lighter.xyz/account/53015`
-- **Etherscan**: `https://etherscan.io/address/0x123...`
-- **BSCscan**: `https://bscscan.com/address/0x123...`
-- **Polygonscan**: `https://polygonscan.com/address/0x123...`
-- **Arbiscan**: `https://arbiscan.io/address/0x123...`
-- **Optimistic Etherscan**: `https://optimistic.etherscan.io/address/0x123...`
-- **Solscan**: `https://solscan.io/account/123...`
-- **Solana Explorer**: `https://explorer.solana.com/address/123...`
 
 ## 🔄 自動化流程
 
@@ -155,19 +204,55 @@ Account1 0x123... https://scan.lighter.xyz/account/53015 $1000     2024/01/01 12
 
 ## 🛠️ 故障排除
 
-### 常見問題
-1. **認證失敗**：檢查 `credentials.json` 檔案和 Google Sheets 權限
-2. **欄位錯誤**：確認 Google Sheets 欄位結構與設定一致
-3. **網路錯誤**：檢查網路連線和目標網站可達性
-4. **API 限制**：CoinGecko API 有速率限制，程式會自動處理
+### 常見問題與解決方案
+
+#### 1. 認證失敗
+**問題**：`認證失敗: [錯誤訊息]`
+**解決方案**：
+- 檢查 `credentials.json` 檔案是否存在
+- 確認 Google Sheets API 已啟用
+- 重新下載憑證檔案
+
+#### 2. 欄位錯誤
+**問題**：`欄位驗證失敗，停止執行`
+**解決方案**：
+- 確認 Google Sheets 欄位結構與設定一致
+- 檢查第二個分頁是否名為「交易」
+- 確認標題行包含所有必要欄位
+
+#### 3. 網路錯誤
+**問題**：`網路錯誤 (嘗試 X/3)`
+**解決方案**：
+- 檢查網路連線
+- 確認目標網站可達性
+- 等待一段時間後重試
+
+#### 4. API 限制
+**問題**：`API配額限制，等待 X 秒後重試`
+**解決方案**：
+- 這是正常現象，程式會自動處理
+- 如需更頻繁的更新，可調整 `COINGECKO_API_DELAY`
 
 ### 日誌查看
 程式會輸出詳細的執行日誌，包括：
-- 認證狀態
-- 欄位驗證結果
-- 爬取進度
-- 價格查詢結果
-- 更新狀態
+- ✅ 認證狀態
+- ✅ 欄位驗證結果
+- ✅ 爬取進度
+- ✅ 價格查詢結果
+- ✅ 更新狀態
+
+## 📞 技術支援
+
+### 取得協助
+1. **查看更新日誌**：[CHANGELOG.md](CHANGELOG.md)
+2. **提交 Issue**：在 GitHub 上提交問題
+3. **檢查故障排除**：查看上方故障排除章節
+
+### 系統需求
+- **作業系統**：Windows 10+, macOS 10.14+, Ubuntu 18.04+
+- **Python 版本**：3.8 或更高版本
+- **記憶體**：至少 512MB 可用記憶體
+- **網路**：穩定的網際網路連線
 
 ## 📄 授權條款
 
@@ -175,19 +260,11 @@ Account1 0x123... https://scan.lighter.xyz/account/53015 $1000     2024/01/01 12
 
 ## 🤝 貢獻指南
 
-歡迎提交 Issue 和 Pull Request！
-
-詳見 [CONTRIBUTING.md](CONTRIBUTING.md)
-
-## 📞 支援
-
-如有問題或建議，請：
-1. 查看 [CHANGELOG.md](CHANGELOG.md) 了解最新更新
-2. 提交 GitHub Issue
-3. 檢查故障排除章節
+歡迎提交 Issue 和 Pull Request！詳見 [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ---
 
-**版本**: v1.1.0  
-**更新日期**: 2024年1月  
-**支援平台**: Windows, macOS, Linux 
+**版本**: v1.2.0  
+**更新日期**: 2024年7月  
+**支援平台**: Windows, macOS, Linux  
+**開發者**: 區塊瀏覽器資料處理工具團隊 
