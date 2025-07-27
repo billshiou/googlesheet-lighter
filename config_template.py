@@ -85,59 +85,13 @@ SUPPORTED_EXPLORERS = {
     'lighter': {
         'base_url': 'scan.lighter.xyz',
         'patterns': [
+            r'https?://scan\.lighter\.xyz/account/([a-zA-Z0-9]+)',
             r'https?://scan\.lighter\.xyz/address/([a-zA-Z0-9]{42})',
             r'https?://scan\.lighter\.xyz/tx/([a-zA-Z0-9]{66})',
         ]
-    },
-    'etherscan': {
-        'base_url': 'etherscan.io',
-        'patterns': [
-            r'https?://etherscan\.io/address/([a-zA-Z0-9]{42})',
-            r'https?://etherscan\.io/tx/([a-zA-Z0-9]{66})',
-        ]
-    },
-    'bscscan': {
-        'base_url': 'bscscan.com',
-        'patterns': [
-            r'https?://bscscan\.com/address/([a-zA-Z0-9]{42})',
-            r'https?://bscscan\.com/tx/([a-zA-Z0-9]{66})',
-        ]
-    },
-    'polygonscan': {
-        'base_url': 'polygonscan.com',
-        'patterns': [
-            r'https?://polygonscan\.com/address/([a-zA-Z0-9]{42})',
-            r'https?://polygonscan\.com/tx/([a-zA-Z0-9]{66})',
-        ]
-    },
-    'arbiscan': {
-        'base_url': 'arbiscan.io',
-        'patterns': [
-            r'https?://arbiscan\.io/address/([a-zA-Z0-9]{42})',
-            r'https?://arbiscan\.io/tx/([a-zA-Z0-9]{66})',
-        ]
-    },
-    'optimistic_etherscan': {
-        'base_url': 'optimistic.etherscan.io',
-        'patterns': [
-            r'https?://optimistic\.etherscan\.io/address/([a-zA-Z0-9]{42})',
-            r'https?://optimistic\.etherscan\.io/tx/([a-zA-Z0-9]{66})',
-        ]
-    },
-    'solscan': {
-        'base_url': 'solscan.io',
-        'patterns': [
-            r'https?://solscan\.io/account/([a-zA-Z0-9]{32,44})',
-            r'https?://solscan\.io/tx/([a-zA-Z0-9]{32,88})',
-        ]
-    },
-    'solana_explorer': {
-        'base_url': 'explorer.solana.com',
-        'patterns': [
-            r'https?://explorer\.solana\.com/address/([a-zA-Z0-9]{32,44})',
-            r'https?://explorer\.solana\.com/tx/([a-zA-Z0-9]{32,88})',
-        ]
     }
+    # 注意：其他區塊瀏覽器的支援仍在開發中
+    # 目前程式使用通用的 HTML 爬取方式，主要針對 Lighter 平台優化
 }
 
 # ============================================================================

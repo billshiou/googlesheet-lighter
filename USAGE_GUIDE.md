@@ -74,16 +74,15 @@ START_ROW = 2
 
 ## 🌐 支援的網址格式
 
-| 平台 | 網址格式 |
-|------|----------|
-| **Lighter** | `https://scan.lighter.xyz/account/53015` |
-| **Etherscan** | `https://etherscan.io/address/0x123...` |
-| **BSCscan** | `https://bscscan.com/address/0x123...` |
-| **Polygonscan** | `https://polygonscan.com/address/0x123...` |
-| **Arbiscan** | `https://arbiscan.io/address/0x123...` |
-| **Optimistic Etherscan** | `https://optimistic.etherscan.io/address/0x123...` |
-| **Solscan** | `https://solscan.io/account/123...` |
-| **Solana Explorer** | `https://explorer.solana.com/address/123...` |
+### ✅ 主要支援平台
+| 平台 | 網址格式 | 說明 |
+|------|----------|------|
+| **Lighter** | `https://scan.lighter.xyz/account/53015` | 主要支援平台，完整功能 |
+
+### 🔄 實驗性支援
+目前程式使用通用的 HTML 爬取方式，理論上可以支援任何區塊瀏覽器，但爬取效果取決於目標網站的頁面結構。
+
+**注意**：其他區塊瀏覽器的支援仍在開發中。
 
 ## 🔄 自動化流程
 

@@ -151,16 +151,15 @@ RUN_IMMEDIATELY = True                       # 啟動時是否立即執行
 
 ## 🌐 支援的區塊瀏覽器
 
-| 平台 | 網址格式 | 範例 |
+### ✅ 主要支援平台
+| 平台 | 網址格式 | 說明 |
 |------|----------|------|
-| **Lighter** | `https://scan.lighter.xyz/account/53015` | 主要支援平台 |
-| **Etherscan** | `https://etherscan.io/address/0x123...` | Ethereum 主網 |
-| **BSCscan** | `https://bscscan.com/address/0x123...` | BSC 網路 |
-| **Polygonscan** | `https://polygonscan.com/address/0x123...` | Polygon 網路 |
-| **Arbiscan** | `https://arbiscan.io/address/0x123...` | Arbitrum 網路 |
-| **Optimistic Etherscan** | `https://optimistic.etherscan.io/address/0x123...` | Optimism 網路 |
-| **Solscan** | `https://solscan.io/account/123...` | Solana 網路 |
-| **Solana Explorer** | `https://explorer.solana.com/address/123...` | Solana 官方瀏覽器 |
+| **Lighter** | `https://scan.lighter.xyz/account/53015` | 主要支援平台，完整功能 |
+
+### 🔄 實驗性支援
+目前程式使用通用的 HTML 爬取方式，理論上可以支援任何區塊瀏覽器，但爬取效果取決於目標網站的頁面結構。
+
+**注意**：其他區塊瀏覽器的支援仍在開發中，可能需要根據具體網站的頁面結構進行調整。
 
 ## ⚙️ 進階設定
 
