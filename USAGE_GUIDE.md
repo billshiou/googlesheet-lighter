@@ -55,7 +55,7 @@ Account1 0x123... https://scan.lighter.xyz/account/53015 $1000     2024/01/01 12
 ### config.py 主要設定
 ```python
 # 必填：您的 Google Sheets ID（從網址取得）
-SPREADSHEET_ID = "1AzFHfAT65IA5p9BS-mMlEOeNRnCHNpAIdZNJ62L_-hY"
+SPREADSHEET_ID = "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms"
 
 # 網址所在欄位（通常是 C 欄）
 URL_COLUMN = "C"
@@ -68,9 +68,9 @@ START_ROW = 2
 1. 開啟您的 Google Sheets
 2. 從網址複製 ID：
    ```
-   https://docs.google.com/spreadsheets/d/1AzFHfAT65IA5p9BS-mMlEOeNRnCHNpAIdZNJ62L_-hY/edit
+   https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit
    ```
-   其中 `1AzFHfAT65IA5p9BS-mMlEOeNRnCHNpAIdZNJ62L_-hY` 就是 ID
+   其中 `1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms` 就是 ID
 
 ## 🌐 支援的網址格式
 

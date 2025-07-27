@@ -145,9 +145,9 @@ RUN_IMMEDIATELY = True                       # 啟動時是否立即執行
 1. 開啟您的 Google Sheets
 2. 從網址中複製 ID：
    ```
-   https://docs.google.com/spreadsheets/d/1AzFHfAT65IA5p9BS-mMlEOeNRnCHNpAIdZNJ62L_-hY/edit
+   https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit
    ```
-   其中 `1AzFHfAT65IA5p9BS-mMlEOeNRnCHNpAIdZNJ62L_-hY` 就是 SPREADSHEET_ID
+   其中 `1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms` 就是 SPREADSHEET_ID
 
 ## 🌐 支援的區塊瀏覽器
 
