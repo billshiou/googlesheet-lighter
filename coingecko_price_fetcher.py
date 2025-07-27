@@ -88,7 +88,27 @@ class CoinGeckoPriceFetcher:
             'HIVE': 'hive',
             'STEEM': 'steem',
             'HBD': 'hive-dollar',
-            'TON': 'the-open-network',  # 新增 TON
+            'TON': 'the-open-network',
+            'POPCAT': 'popcat',
+            'KAITO': 'kaito',
+            # 新增一些常見的熱門幣種
+            'BNB': 'binancecoin',
+            'BUSD': 'binance-usd',
+            'DAI': 'dai',
+            'WBTC': 'wrapped-bitcoin',
+            'WETH': 'weth',
+            'CAKE': 'pancakeswap-token',
+            'APT': 'aptos',
+            'SUI': 'sui',
+            'INJ': 'injective-protocol',
+            'TIA': 'celestia',
+            'PYTH': 'pyth-network',
+            'JUP': 'jupiter',
+            'BONK': 'bonk',
+            'WIF': 'dogwifhat',
+            'FLOKI': 'floki',
+            'BOOK': 'book-of-meme',
+            'MYRO': 'myro',
         }
         
         # 反向對照表：ID 到 symbol
@@ -98,7 +118,7 @@ class CoinGeckoPriceFetcher:
         try:
             self.load_mapping()
         except:
-            pass  # 如果檔案不存在，就使用預設對照表
+            pass
     
     def get_symbol_id(self, symbol: str) -> Optional[str]:
         """根據 symbol 取得 CoinGecko ID"""
@@ -124,12 +144,16 @@ class CoinGeckoPriceFetcher:
     
     def get_single_price(self, symbol: str, currency: str = 'usd', max_retries: int = 3) -> Optional[float]:
         """查詢單一幣種價格，加入重試機制"""
+        if not symbol or not symbol.strip():
+            return None
+            
+        symbol = symbol.strip().upper()
         coin_id = self.get_symbol_id(symbol)
         
-        # 如果找不到對照，嘗試自動搜尋
+        # 如果找不到對照，嘗試簡單搜尋
         if not coin_id:
-            print(f"找不到 {symbol} 的 CoinGecko ID，嘗試自動搜尋...")
-            coin_id = self._auto_search_coin_id(symbol)
+            print(f"找不到 {symbol} 的 CoinGecko ID，嘗試搜尋...")
+            coin_id = self._simple_search_coin_id(symbol)
             if coin_id:
                 # 自動加入對照表
                 self.add_custom_symbol(symbol, coin_id)
@@ -184,23 +208,29 @@ class CoinGeckoPriceFetcher:
         
         return None
     
-    def _auto_search_coin_id(self, symbol: str) -> Optional[str]:
-        """自動搜尋幣種 ID"""
+    def _simple_search_coin_id(self, symbol: str) -> Optional[str]:
+        """簡單搜尋幣種 ID"""
         try:
-            # 搜尋幣種
             results = self.search_coin(symbol)
             if results:
-                # 取第一個結果
+                # 優先選擇完全匹配的結果
+                for result in results:
+                    if result['symbol'].upper() == symbol.upper():
+                        coin_id = result['id']
+                        print(f"搜尋到完全匹配: {symbol} -> {coin_id} ({result['name']})")
+                        return coin_id
+                
+                # 如果沒有完全匹配，取第一個結果
                 coin_id = results[0]['id']
-                print(f"自動搜尋到 {symbol} -> {coin_id} ({results[0]['name']})")
+                print(f"搜尋到部分匹配: {symbol} -> {coin_id} ({results[0]['name']})")
                 return coin_id
         except Exception as e:
-            print(f"自動搜尋 {symbol} 時發生錯誤: {e}")
+            print(f"搜尋 {symbol} 時發生錯誤: {e}")
         
         return None
     
     def get_batch_prices(self, symbols: List[str], currency: str = 'usd') -> Dict[str, float]:
-        """批次查詢多個幣種價格"""
+        """批次查詢多個幣種價格，使用智能搜尋"""
         if not symbols:
             return {}
         
@@ -210,12 +240,23 @@ class CoinGeckoPriceFetcher:
         
         for symbol in symbols:
             if symbol and symbol.strip():
-                coin_id = self.get_symbol_id(symbol.strip())
+                symbol_clean = symbol.strip().upper()
+                coin_id = self.get_symbol_id(symbol_clean)
+                
+                # 如果找不到對照，嘗試智能搜尋
+                if not coin_id:
+                    print(f"找不到 {symbol_clean} 的 CoinGecko ID，嘗試智能搜尋...")
+                    coin_id = self._simple_search_coin_id(symbol_clean)
+                    if coin_id:
+                        # 自動加入對照表
+                        self.add_custom_symbol(symbol_clean, coin_id)
+                        print(f"已自動新增 {symbol_clean} -> {coin_id} 到對照表")
+                
                 if coin_id:
-                    valid_symbols.append(symbol.strip())
+                    valid_symbols.append(symbol_clean)
                     coin_ids.append(coin_id)
                 else:
-                    print(f"警告: 找不到 {symbol} 的 CoinGecko ID")
+                    print(f"警告: 無法找到 {symbol_clean} 的 CoinGecko ID")
         
         if not coin_ids:
             print("沒有有效的幣種可以查詢")
@@ -250,7 +291,7 @@ class CoinGeckoPriceFetcher:
             return {}
     
     def get_batch_prices_with_delay(self, symbols: List[str], currency: str = 'usd', delay: float = 3.0, max_retries: int = 3) -> Dict[str, float]:
-        """批次查詢多個幣種價格，加入重試機制和延遲"""
+        """批次查詢多個幣種價格，加入重試機制、延遲和智能搜尋"""
         if not symbols:
             return {}
         
@@ -260,12 +301,23 @@ class CoinGeckoPriceFetcher:
         
         for symbol in symbols:
             if symbol and symbol.strip():
-                coin_id = self.get_symbol_id(symbol.strip())
+                symbol_clean = symbol.strip().upper()
+                coin_id = self.get_symbol_id(symbol_clean)
+                
+                # 如果找不到對照，嘗試智能搜尋
+                if not coin_id:
+                    print(f"找不到 {symbol_clean} 的 CoinGecko ID，嘗試智能搜尋...")
+                    coin_id = self._simple_search_coin_id(symbol_clean)
+                    if coin_id:
+                        # 自動加入對照表
+                        self.add_custom_symbol(symbol_clean, coin_id)
+                        print(f"已自動新增 {symbol_clean} -> {coin_id} 到對照表")
+                
                 if coin_id:
-                    valid_symbols.append(symbol.strip())
+                    valid_symbols.append(symbol_clean)
                     coin_ids.append(coin_id)
                 else:
-                    print(f"警告: 找不到 {symbol} 的 CoinGecko ID")
+                    print(f"警告: 無法找到 {symbol_clean} 的 CoinGecko ID")
         
         if not coin_ids:
             print("沒有有效的幣種可以查詢")
