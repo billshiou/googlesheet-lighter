@@ -171,10 +171,17 @@ class SheetsProcessor:
             print("欄位驗證失敗，停止執行以避免覆蓋錯誤欄位")
             return
         
-        url_range = f"交易!{url_column}{start_row}:{url_column}{end_row if end_row else ''}"
-        url_data = self.read_sheet_data(spreadsheet_id, url_range)
+        # 讀取完整的資料範圍
         data_range = f"交易!A{start_row}:Z{end_row if end_row else ''}"
         all_data = self.read_sheet_data(spreadsheet_id, data_range)
+        
+        # 讀取URL欄位的資料
+        url_range = f"交易!{url_column}{start_row}:{url_column}{end_row if end_row else ''}"
+        url_data = self.read_sheet_data(spreadsheet_id, url_range)
+        
+        # 確保我們處理所有行，包括空行
+        total_rows = end_row - start_row + 1 if end_row else len(all_data)
+        print(f"總共需要處理 {total_rows} 行")
         
         # 批次更新，減少 API 呼叫
         batch_updates = []
@@ -182,9 +189,44 @@ class SheetsProcessor:
         
         for i, row in enumerate(url_data):
             if not row:
+                # 處理空行，至少填入 last_updated
+                print(f"\n處理第 {start_row + i} 行: 空行")
+                row_updates = []
+                for field, col_idx in safe_field_mapping.items():
+                    if field == 'last_updated':
+                        value = datetime.now().strftime('%Y/%m/%d %H:%M:%S')
+                        col_letter = chr(65 + col_idx)
+                        row_num = start_row + i
+                        cell = f"{col_letter}{row_num}"
+                        header = header_row[col_idx] if col_idx < len(header_row) else f"Column{col_idx}"
+                        row_updates.append((cell, value))
+                        print(f"  準備更新: {cell} ({header}) = {value}")
+                
+                if row_updates:
+                    batch_updates.append(row_updates)
+                    updated_count += 1
+                    print(f"  加入批次更新: {len(row_updates)} 個欄位")
                 continue
+            
             url = row[0] if row else ''
             if not url:
+                # 處理沒有URL的行，至少填入 last_updated
+                print(f"\n處理第 {start_row + i} 行: 沒有URL")
+                row_updates = []
+                for field, col_idx in safe_field_mapping.items():
+                    if field == 'last_updated':
+                        value = datetime.now().strftime('%Y/%m/%d %H:%M:%S')
+                        col_letter = chr(65 + col_idx)
+                        row_num = start_row + i
+                        cell = f"{col_letter}{row_num}"
+                        header = header_row[col_idx] if col_idx < len(header_row) else f"Column{col_idx}"
+                        row_updates.append((cell, value))
+                        print(f"  準備更新: {cell} ({header}) = {value}")
+                
+                if row_updates:
+                    batch_updates.append(row_updates)
+                    updated_count += 1
+                    print(f"  加入批次更新: {len(row_updates)} 個欄位")
                 continue
                 
             print(f"\n處理第 {start_row + i} 行: {url}")
@@ -204,7 +246,7 @@ class SheetsProcessor:
                 col_letter = chr(65 + col_idx)
                 row_num = start_row + i
                 cell = f"{col_letter}{row_num}"
-                header = header_row[col_idx]
+                header = header_row[col_idx] if col_idx < len(header_row) else f"Column{col_idx}"
                 row_updates.append((cell, value))
                 print(f"  準備更新: {cell} ({header}) = {value}")
             
@@ -561,15 +603,36 @@ class SheetsProcessor:
                 # 由於頁面內容可能被壓縮在一行中，使用正則表達式來匹配倉位模式
                 all_text = soup.get_text()
                 
-                # 使用正則表達式來匹配倉位模式
-                position_pattern = r'([A-Z]{2,10})Size:\s*([\d\.]+)\s*Side:\s*(SHORT|LONG)\s*Realized PnL:\s*([$\-\d,\.]+)\s*Unrealized PnL:\s*([$\-\d,\.]+)'
-                matches = re.findall(position_pattern, all_text)
+                # 使用正則表達式來匹配倉位模式 - 支援多種格式
+                position_patterns = [
+                    # 原始格式：LDO Size: 62.0 Side: SHORT
+                    r'([A-Z]{2,10})Size:\s*([\d\.]+)\s*Side:\s*(SHORT|LONG)\s*Realized PnL:\s*([$\-\d,\.]+)\s*Unrealized PnL:\s*([$\-\d,\.]+)',
+                    # AI16Z格式：AI16ZSize: 3265.3 Side: SHORT
+                    r'([A-Z0-9]{2,10})Size:\s*([\d\.]+)\s*Side:\s*(SHORT|LONG)\s*Realized PnL:\s*([$\-\d,\.]+)\s*Unrealized PnL:\s*([$\-\d,\.]+)',
+                    # 簡化格式：Size: 3265.3 Side: SHORT
+                    r'Size:\s*([\d\.]+)\s*Side:\s*(SHORT|LONG)\s*Realized PnL:\s*([$\-\d,\.]+)\s*Unrealized PnL:\s*([$\-\d,\.]+)',
+                ]
+                
+                matches = []
+                for pattern in position_patterns:
+                    matches = re.findall(pattern, all_text)
+                    if matches:
+                        print(f"使用模式找到 {len(matches)} 個倉位匹配: {pattern}")
+                        break
                 
                 print(f"找到 {len(matches)} 個倉位匹配")
                 
                 for i, match in enumerate(matches[:2]):  # 只處理前兩個倉位
                     position_count += 1
-                    symbol, size, side, realized_pnl, unrealized_pnl = match
+                    
+                    # 處理不同格式的匹配結果
+                    if len(match) == 5:  # 完整格式：包含幣種代碼
+                        symbol, size, side, realized_pnl, unrealized_pnl = match
+                    elif len(match) == 4:  # 簡化格式：沒有幣種代碼
+                        size, side, realized_pnl, unrealized_pnl = match
+                        symbol = 'AI16Z'  # 預設幣種代碼
+                    else:
+                        continue
                     
                     # 清理PnL值
                     realized_pnl_clean = self.clean_monetary_value(realized_pnl)
